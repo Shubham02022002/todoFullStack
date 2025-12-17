@@ -8,6 +8,12 @@ const userSchema = z.object({
   password: z.string().min(5),
 });
 
+const todoSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  completed: z.boolean(),
+});
+
 validate(userSchema);
 
 const authenticateUser = (req, res, next) => {
@@ -27,4 +33,4 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-module.exports = { authenticateUser, userSchema };
+module.exports = { authenticateUser, userSchema, todoSchema };

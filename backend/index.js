@@ -1,16 +1,18 @@
 const app = require("express")();
 const bodyParser = require("body-parser");
-
+const userRouter = require("./routes/userRoutes.js");
 require("dotenv").config();
+app.use(bodyParser.json());
 
 const PORT = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
+app.use("/user", userRouter);
 
-app.get("/", (req, res) => {
-  res.status(200).send("hi there");
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Invalid Route!");
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is up at ${PORT}`);
+  console.log(`Server is up on port ${PORT}`);
 });
