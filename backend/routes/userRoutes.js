@@ -20,6 +20,11 @@ router.post("/signup", validate(userSchema), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ username, password: hashedPassword });
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "1h" });
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
     res
       .status(201)
       .json({ message: "User created successfully", token, id: user._id });
@@ -33,11 +38,19 @@ router.post("/signin", validate(userSchema), async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
     const isPasswordValid = bcrypt.compare(password, user.password);
-    if (!(user || isPasswordValid)) {
+    if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid username or password" });
     }
     const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "1h" });
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
     res.status(200).json({
       message: "Logged in successfully",
       token: token,
@@ -47,6 +60,15 @@ router.post("/signin", validate(userSchema), async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Internal server error." });
   }
+});
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("access_token", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+  });
+  res.status(200).json({ message: "Logged out successfully" });
 });
 
 router.use(authenticateUser);

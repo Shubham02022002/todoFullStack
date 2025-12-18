@@ -17,19 +17,16 @@ const todoSchema = z.object({
 validate(userSchema);
 
 const authenticateUser = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader.split(" ")[1];
-  if (!(authHeader || token)) {
+  const token = req.cookies.access_token;
+  if (!token) {
     return res.status(401).json({ message: "Authentication required." });
   }
   try {
-    let userId;
     const payload = jwt.verify(token, SECRET);
     req.userId = payload.id;
     next();
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Authentication failed." });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token." });
   }
 };
 

@@ -11,7 +11,10 @@ mongoose.connect(MONGO_URI).then((resp) => {
 const todoSchema = new Schema({
   title: String,
   description: String,
-  completed: Boolean,
+  completed: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const userSchema = new Schema({
