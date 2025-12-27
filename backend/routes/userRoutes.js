@@ -8,6 +8,7 @@ const {
   todoSchema,
 } = require("../middleware/authMiddleware");
 const validate = require("../middleware/validation");
+const { default: mongoose } = require("mongoose");
 const SECRET = process.env.SECRET;
 
 router.post("/signup", validate(userSchema), async (req, res) => {
@@ -81,6 +82,16 @@ router.post("/todo", validate(todoSchema), async (req, res) => {
       description,
       completed,
     });
+    await User.findOneAndUpdate(
+      {
+        _id: req.userId,
+      },
+      {
+        $addToSet: {
+          todos: newTodo._id,
+        },
+      }
+    );
     res
       .status(201)
       .json({ message: "Todo created successfully", todoId: newTodo._id });
@@ -113,8 +124,11 @@ router.put("/todos/:todoId", validate(todoSchema), async (req, res) => {
 });
 
 router.get("/todos", async (req, res) => {
-  const todos = await Todo.find();
-  res.status(200).json(todos);
+  const user = await User.findById(req.userId)
+    .populate("todos", "title description completed")
+    .select("todos");
+
+  res.status(200).json(user.todos);
 });
 
 router.delete("/todos/:todoId", async (req, res) => {
