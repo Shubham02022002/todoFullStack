@@ -1,116 +1,45 @@
-import { useEffect, useState } from "react";
-import "./App.css";
+import { useEffect } from "react";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Todos from "./components/Todos";
 import CreateTodo from "./components/CreateTodo";
+import LoginForm from "./components/LoginForm";
 import { ToastContainer } from "react-toastify";
-import success from "./components/Toast";
 
-const API_URL = import.meta.env.VITE_API_URL;
+import { useTodos } from "./hooks/useTodos";
+import { useAuth } from "./hooks/useAuth";
 
 function App() {
-  const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { todos, loading, fetchTodos, setTodos } = useTodos();
 
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-  });
-
-  const fetchTodos = async () => {
-    try {
-      setLoading(true);
-      const resp = await fetch(`${API_URL}/todos`, {
-        credentials: "include",
-      });
-      if (!resp.ok) {
-        setIsAuthenticated(false);
-        setTodos([]);
-        return;
-      }
-      const data = await resp.json();
-      setTodos(data);
-      setIsAuthenticated(true);
-    } catch (err) {
-      console.error("Fetch todos failed:", err);
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const authenticate = async (endpoint, successMsg) => {
-    try {
-      setAuthLoading(true);
-      const resp = await fetch(`${API_URL}/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
-
-      if (!resp.ok) {
-        throw new Error("Authentication failed");
-      }
-      success(successMsg);
-      setFormData({ username: "", password: "" });
-      fetchTodos();
-    } catch (err) {
-      console.error(err);
-      alert("Authentication failed");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleSignin = () => authenticate("signin", "Logged in!");
-  const handleSignup = () => authenticate("signup", "Welcome to Todos.com!");
-
-  const handleLogout = async () => {
-    await fetch(`${API_URL}/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-
-    setIsAuthenticated(false);
-    setTodos([]);
-  };
+  const {
+    formData,
+    setFormData,
+    authLoading,
+    isAuthenticated,
+    setIsAuthenticated,
+    authenticate,
+    logout,
+  } = useAuth(() => fetchTodos(() => setIsAuthenticated(false)));
 
   useEffect(() => {
-    fetchTodos();
+    fetchTodos(() => setIsAuthenticated(false));
   }, []);
 
   return (
     <>
       <ToastContainer />
-      {!isAuthenticated && (
-        <div className="auth-box">
-          <h3>TODO.com</h3>
-          <input
-            name="username"
-            placeholder="username"
-            value={formData.username}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, username: e.target.value }))
-            }
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="password"
-            value={formData.password}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, password: e.target.value }))
-            }
-          />
+      <Navbar logout={logout} isAuthenticated={isAuthenticated} />
 
-          <button disabled={authLoading} onClick={handleSignin}>
-            Signin
-          </button>
-          <button disabled={authLoading} onClick={handleSignup}>
-            Signup
-          </button>
+      {!isAuthenticated && (
+        <div className="flex justify-center">
+          <LoginForm
+            formData={formData}
+            setFormData={setFormData}
+            loading={authLoading}
+            onSignin={() => authenticate("signin", "Logged in!")}
+            onSignup={() => authenticate("signup", "Welcome!")}
+          />
         </div>
       )}
 
@@ -121,9 +50,10 @@ function App() {
           {!loading && todos.length === 0 && <p>No todos found</p>}
           <CreateTodo fetchTodos={fetchTodos} />
           <Todos todos={todos} />
-          <button onClick={handleLogout}>Signout</button>
         </>
       )}
+
+      <Footer />
     </>
   );
 }
